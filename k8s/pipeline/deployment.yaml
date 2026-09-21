@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: pipeline
+  namespace: credentialing
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: pipeline
+
+  template:
+    metadata:
+      labels:
+        app: pipeline
+
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: pipeline
+          image: credentialing-pipeline:local
+
+          ports:
+            - containerPort: 5001
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+              ephemeral-storage: 1Gi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+              ephemeral-storage: 2Gi
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 30
+            periodSeconds: 20

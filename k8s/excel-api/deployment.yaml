@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: excel-api
+  namespace: credentialing
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: excel-api
+
+  template:
+    metadata:
+      labels:
+        app: excel-api
+
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: excel-api
+          image: credentialing-excel-api:local
+
+          ports:
+            - containerPort: 8002
+
+          env:
+            - name: PORT
+              value: "8002"
+
+            - name: COCKPIT_API_BASE
+              value: "http://cockpit:8004"
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "2Gi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 30
+            periodSeconds: 20

@@ -1,0 +1,100 @@
+name: Build and Push Credentialing Images
+
+on:
+  push:
+    branches:
+      - credentialing-ci
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-west-1
+  ECR_REGISTRY: 764988199649.dkr.ecr.us-west-1.amazonaws.com
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. Get source code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Authenticate GitHub Actions with AWS using OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3. Login to ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Build all four Docker images
+      - name: Build images
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}" \
+            ./cred_fronted
+
+          docker build \
+            -t "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}" \
+            -f ./cred_deploy/Dockerfile \
+            ./cred_deploy
+
+          docker build \
+            -t "$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}" \
+            -f ./cred_deploy/Dockerfile.pipeline \
+            ./cred_deploy
+
+          docker build \
+            -t "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}" \
+            ./cred_fronted/excel-api
+
+      # 5. Install Trivy CLI
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      # 6. Scan images
+      - name: Trivy scan
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            "$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}"
+
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"
+
+      # 7. Push images to ECR
+      - name: Push images
+        run: |
+          docker push \
+            "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}"
+
+          docker push \
+            "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}"
+
+          docker push \
+            "$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}"
+
+          docker push \
+            "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"

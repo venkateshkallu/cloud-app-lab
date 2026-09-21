@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: pipeline
+  namespace: credentialing
+
+spec:
+  selector:
+    app: pipeline
+
+  ports:
+    - protocol: TCP
+      port: 5001
+      targetPort: 5001
+
+  type: ClusterIP
