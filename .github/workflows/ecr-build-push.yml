@@ -3,7 +3,7 @@ name: Build and Push Credentialing Images
 on:
   push:
     branches:
-      - credentialing-ci
+      - main
 
 permissions:
   contents: read
