@@ -55,7 +55,7 @@ jobs:
 
           docker build \
             -t "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}" \
-            ./cred_frontend/excel-api
+            ./cred_fronted/excel-api
 
       # 5. Install Trivy CLI
       - name: Install Trivy
