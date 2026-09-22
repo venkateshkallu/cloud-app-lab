@@ -41,7 +41,7 @@ jobs:
         run: |
           docker build \
             -t "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}" \
-            ./cred_frontend
+            ./cred_fronted
 
           docker build \
             -t "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}" \
