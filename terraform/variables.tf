@@ -14,13 +14,8 @@ variable "app_subnet_ids" {
   type        = list(string)
 }
 
-variable "app_security_group_id" {
-  description = "Existing application security group ID"
-  type        = string
-}
-
 variable "project_name" {
   description = "Project name"
   type        = string
-  default     = "credentialing"
+  default     = "cloud-app-lab"
 }

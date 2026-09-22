@@ -1,13 +1,13 @@
 locals {
   ecr_repositories = [
-    "credentialing/frontend",
-    "credentialing/cockpit",
-    "credentialing/pipeline",
-    "credentialing/excel-api"
+    "cloudapplab/frontend",
+    "cloudapplab/cockpit",
+    "cloudapplab/pipeline",
+    "cloudapplab/excel-api"
   ]
 }
 
-resource "aws_ecr_repository" "credentialing" {
+resource "aws_ecr_repository" "cloudapplab" {
   for_each = toset(local.ecr_repositories)
 
   name                 = each.value
@@ -20,8 +20,8 @@ resource "aws_ecr_repository" "credentialing" {
   tags = local.common_tags
 }
 
-resource "aws_ecr_lifecycle_policy" "credentialing" {
-  for_each = aws_ecr_repository.credentialing
+resource "aws_ecr_lifecycle_policy" "cloudapplab" {
+  for_each = aws_ecr_repository.cloudapplab
 
   repository = each.value.name
 
@@ -29,8 +29,7 @@ resource "aws_ecr_lifecycle_policy" "credentialing" {
     rules = [
       {
         rulePriority = 1
-
-        description = "Expire untagged images after 14 days"
+        description  = "Expire untagged images after 14 days"
 
         selection = {
           tagStatus   = "untagged"

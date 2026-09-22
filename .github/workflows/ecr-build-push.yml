@@ -1,4 +1,4 @@
-name: Build and Push Credentialing Images
+name: Build, Push and Deploy Credentialing
 
 on:
   push:
@@ -12,6 +12,8 @@ permissions:
 env:
   AWS_REGION: us-west-1
   ECR_REGISTRY: 764988199649.dkr.ecr.us-west-1.amazonaws.com
+  EKS_CLUSTER_NAME: cloudapplab-dev
+  K8S_NAMESPACE: cloudapplab
 
 jobs:
   build-and-push:
@@ -39,7 +41,7 @@ jobs:
         run: |
           docker build \
             -t "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}" \
-            ./cred_fronted
+            ./cred_frontend
 
           docker build \
             -t "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}" \
@@ -53,7 +55,7 @@ jobs:
 
           docker build \
             -t "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}" \
-            ./cred_fronted/excel-api
+            ./cred_frontend/excel-api
 
       # 5. Install Trivy CLI
       - name: Install Trivy
@@ -98,3 +100,71 @@ jobs:
 
           docker push \
             "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"
+
+      # 8. Install kubectl
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+      # 9. Configure kubectl for EKS
+      - name: Configure EKS access
+        run: |
+          aws eks update-kubeconfig \
+            --region "$AWS_REGION" \
+            --name "$EKS_CLUSTER_NAME"
+
+      # 10. Verify EKS connection
+      - name: Verify EKS
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      # 11. Create namespace
+      - name: Create namespace
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+
+      # 12. Deploy Kubernetes manifests
+      - name: Deploy Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/cockpit/
+          kubectl apply -f k8s/pipeline/
+          kubectl apply -f k8s/excel-api/
+          kubectl apply -f k8s/frontend/
+
+      # 13. Update deployments with immutable Git SHA images
+      - name: Update container images
+        run: |
+          kubectl -n "$K8S_NAMESPACE" set image deployment/cockpit \
+            cockpit="$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}"
+
+          kubectl -n "$K8S_NAMESPACE" set image deployment/pipeline \
+            pipeline="$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}"
+
+          kubectl -n "$K8S_NAMESPACE" set image deployment/excel-api \
+            excel-api="$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"
+
+          kubectl -n "$K8S_NAMESPACE" set image deployment/frontend \
+            frontend="$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}"
+
+      # 14. Wait for rollout
+      - name: Wait for rollout
+        run: |
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/cockpit --timeout=180s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/pipeline --timeout=180s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/excel-api --timeout=180s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/frontend --timeout=180s
+
+      # 15. Verify deployment
+      - name: Verify deployment
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -n "$K8S_NAMESPACE"
+
+          echo "=== Services ==="
+          kubectl get services -n "$K8S_NAMESPACE"
+
+          echo "=== Deployments ==="
+          kubectl get deployments -n "$K8S_NAMESPACE"
