@@ -1,4 +1,4 @@
-name: Build, Push and Deploy Credentialing
+name: Build, Push and Deploy CloudAppLab
 
 on:
   push:
@@ -40,21 +40,21 @@ jobs:
       - name: Build images
         run: |
           docker build \
-            -t "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}" \
+            -t "$ECR_REGISTRY/cloudapplab/frontend:${GITHUB_SHA}" \
             ./cred_fronted
 
           docker build \
-            -t "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}" \
+            -t "$ECR_REGISTRY/cloudapplab/cockpit:${GITHUB_SHA}" \
             -f ./cred_deploy/Dockerfile \
             ./cred_deploy
 
           docker build \
-            -t "$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}" \
+            -t "$ECR_REGISTRY/cloudapplab/pipeline:${GITHUB_SHA}" \
             -f ./cred_deploy/Dockerfile.pipeline \
             ./cred_deploy
 
           docker build \
-            -t "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}" \
+            -t "$ECR_REGISTRY/cloudapplab/excel-api:${GITHUB_SHA}" \
             ./cred_fronted/excel-api
 
       # 5. Install Trivy CLI
@@ -69,37 +69,37 @@ jobs:
           trivy image \
             --severity HIGH,CRITICAL \
             --exit-code 0 \
-            "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/frontend:${GITHUB_SHA}"
 
           trivy image \
             --severity HIGH,CRITICAL \
             --exit-code 0 \
-            "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/cockpit:${GITHUB_SHA}"
 
           trivy image \
             --severity HIGH,CRITICAL \
             --exit-code 0 \
-            "$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/pipeline:${GITHUB_SHA}"
 
           trivy image \
             --severity HIGH,CRITICAL \
             --exit-code 0 \
-            "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/excel-api:${GITHUB_SHA}"
 
       # 7. Push images to ECR
       - name: Push images
         run: |
           docker push \
-            "$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/frontend:${GITHUB_SHA}"
 
           docker push \
-            "$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/cockpit:${GITHUB_SHA}"
 
           docker push \
-            "$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/pipeline:${GITHUB_SHA}"
 
           docker push \
-            "$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"
+            "$ECR_REGISTRY/cloudapplab/excel-api:${GITHUB_SHA}"
 
       # 8. Install kubectl
       - name: Install kubectl
@@ -138,16 +138,16 @@ jobs:
       - name: Update container images
         run: |
           kubectl -n "$K8S_NAMESPACE" set image deployment/cockpit \
-            cockpit="$ECR_REGISTRY/credentialing/cockpit:${GITHUB_SHA}"
+            cockpit="$ECR_REGISTRY/cloudapplab/cockpit:${GITHUB_SHA}"
 
           kubectl -n "$K8S_NAMESPACE" set image deployment/pipeline \
-            pipeline="$ECR_REGISTRY/credentialing/pipeline:${GITHUB_SHA}"
+            pipeline="$ECR_REGISTRY/cloudapplab/pipeline:${GITHUB_SHA}"
 
           kubectl -n "$K8S_NAMESPACE" set image deployment/excel-api \
-            excel-api="$ECR_REGISTRY/credentialing/excel-api:${GITHUB_SHA}"
+            excel-api="$ECR_REGISTRY/cloudapplab/excel-api:${GITHUB_SHA}"
 
           kubectl -n "$K8S_NAMESPACE" set image deployment/frontend \
-            frontend="$ECR_REGISTRY/credentialing/frontend:${GITHUB_SHA}"
+            frontend="$ECR_REGISTRY/cloudapplab/frontend:${GITHUB_SHA}"
 
       # 14. Wait for rollout
       - name: Wait for rollout
