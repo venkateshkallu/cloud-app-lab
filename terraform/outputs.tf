@@ -16,3 +16,17 @@ output "eks_cluster_endpoint" {
   description = "CloudAppLab EKS cluster endpoint"
   value       = module.eks.cluster_endpoint
 }
+output "rds_endpoint" {
+  description = "CloudAppLab PostgreSQL RDS endpoint"
+  value       = aws_db_instance.cloudapplab.address
+}
+
+output "rds_port" {
+  description = "CloudAppLab PostgreSQL port"
+  value       = aws_db_instance.cloudapplab.port
+}
+
+output "rds_database_name" {
+  description = "CloudAppLab PostgreSQL database name"
+  value       = aws_db_instance.cloudapplab.db_name
+}
